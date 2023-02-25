@@ -11,7 +11,8 @@ using namespace OPS;
 using namespace OPS::Reprise;
 
 
-const size_t MassThreshold = 1;
+const size_t MassThreshold = 2;
+const double SimilarityThreshold = 0.5;
 
 struct SubTreeInfo {
 	RepriseBase *node;
@@ -137,6 +138,80 @@ pair<size_t,size_t> hashSubTree(RepriseBase* node, int depth = 0)
 	return {h,size};
 }
 
+int compareTree(RepriseBase* t1, RepriseBase* t2)
+{
+	int shared = 0;
+	if (t1->is_a<SubroutineDeclaration>() && t2->is_a<SubroutineDeclaration>())
+	{
+		shared++;
+	}
+	if (t1->is_a<BlockStatement>() && t2->is_a<BlockStatement>())
+	{
+		shared++;
+	}
+	if (t1->is_a<IfStatement>() && t2->is_a<IfStatement>())
+	{
+		shared++;
+	}
+	if (t1->is_a<VariableDeclaration>() && t2->is_a<VariableDeclaration>())
+	{
+		shared++;
+	}
+	if (t1->is_a<ExpressionStatement>() && t2->is_a<ExpressionStatement>())
+	{
+		shared++;
+	}
+	if (t1->is_a<ExpressionBase>() && t2->is_a<ExpressionBase>())
+	{
+
+		if (t1->is_a<BasicCallExpression>() && t2->is_a<BasicCallExpression>())
+		{
+			auto b1 = (BasicCallExpression*)t1;
+			auto b2 = (BasicCallExpression*)t2;
+
+			if (b1->getKind() == b2->getKind())
+				shared++;
+		}
+		if (t1->is_a<BasicLiteralExpression>() && t2->is_a<BasicLiteralExpression>())
+		{
+			auto b1 = (BasicLiteralExpression*)t1;
+			auto b2 = (BasicLiteralExpression*)t2;
+
+			if (b1->getLiteralType() == b2->getLiteralType())
+				shared++;
+		}
+		if (t1->is_a<StrictLiteralExpression>() && t2->is_a<StrictLiteralExpression>())
+		{
+			shared++;
+		}
+	}
+	if (t1->is_a<PlainCaseLabel>() && t2->is_a<PlainCaseLabel>())
+	{
+		shared++;
+	}
+	if (t1->is_a<GotoStatement>() && t2->is_a<GotoStatement>())
+	{
+		shared++;
+	}
+	if (t1->is_a<ReturnStatement>() && t2->is_a<ReturnStatement>())
+	{
+		shared++;
+	}
+
+	int minChildren = min(t1->getChildCount(), t2->getChildCount());
+	for (int i = 0; i < minChildren; i++)
+		shared += compareTree(&t1->getChild(i), &t2->getChild(i));
+
+	return shared;
+}
+
+bool isSimilar(SubTreeInfo& t1, SubTreeInfo& t2)
+{
+	int sharedNodes = compareTree(t1.node, t2.node);
+	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1.subTreeSize - sharedNodes) + (t2.subTreeSize - sharedNodes));
+	return similarity > SimilarityThreshold;
+}
+
 
 int main()
 {
@@ -146,6 +221,21 @@ int main()
 
 	TranslationUnit& unit = frontend.getProgramUnit().getUnit(0);
 	hashSubTree(&(*unit.getGlobals().getFirstSubr()));
+
+	for (auto &bucket : buckets)
+	{
+		for (int i = 0; i < bucket.second.size(); i++)
+		{
+			for (int j = i + 1; j < bucket.second.size(); j++)
+			{
+				if (isSimilar(bucket.second[i], bucket.second[j]))
+				{
+					cout << "Seems like clone found" << endl;
+					cout << bucket.first << endl;
+				}
+			}
+		}
+	}
 
 	system("pause");
 	return 0;
