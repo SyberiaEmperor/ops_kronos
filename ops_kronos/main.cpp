@@ -13,7 +13,7 @@ using namespace OPS::Reprise;
 
 
 const size_t MassThreshold = 2;
-const double SimilarityThreshold = 0.5;
+const double SimilarityThreshold = 0.1;
 
 
 class HashDeepWalker : public Service::DeepWalker
@@ -37,7 +37,10 @@ private:
 	void processNode(Func f, RepriseBase* n)
 	{
 		size++;
+		size_t th = h;
+		h = 0;
 		f();
+		h = th;
 		nodes.push_back(SubTreeInfo(n, h, size));
 	}
 
@@ -80,6 +83,7 @@ public:
 		processNode([&]() {
 			cout << string(" ") << "It is variable declaration" << endl;
 			h += hash<int>{}(vd.getKind()) << 1;
+			//vd.getName()
 			// vd.getType(); implement hasher for TypeBase
 			DeepWalker::visit(vd);
 			}, &vd);
@@ -196,18 +200,113 @@ public:
 	}
 
 	//Types
-	void visit(BasicType&) {}
-	void visit(PtrType&) {}
-	void visit(TypedefType&) {}
-	void visit(ArrayType&) {}
-	void visit(StructMemberDescriptor& structMember) {}
-	void visit(StructType&) {}
-	void visit(EnumMemberDescriptor&) {}
-	void visit(EnumType&) {}
-	void visit(ParameterDescriptor&) {}
-	void visit(SubroutineType&) {}
-	void visit(DeclaredType&) {}
-	void visit(VectorType&) {}
+	void visit(BasicType& bt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is basic type" << endl;
+			h += hash<int>{}(bt.getKind()) << 1;
+			h += hash<int>{}(bt.getSizeOf()) << 1;
+			DeepWalker::visit(bt);
+			}, &bt);
+	}
+	void visit(PtrType& pt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is pointer" << endl;
+			h += hash<string>{}(typeid(pt).name()) << 1;
+			DeepWalker::visit(pt);
+			}, &pt);
+	}
+	void visit(TypedefType& tdt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is typedef" << endl;
+			h += hash<string>{}(typeid(tdt).name()) << 1;
+			DeepWalker::visit(tdt);
+			}, &tdt);
+	}
+	void visit(ArrayType& at) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is array" << endl;
+			h += hash<string>{}(typeid(at).name()) << 1;
+			h += hash<int>{}(at.getElementCount()) << 1;
+			DeepWalker::visit(at);
+			}, &at);
+	}
+	void visit(StructMemberDescriptor& structMember) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is struct member" << endl;
+			h += hash<string>{}(typeid(structMember).name()) << 1;
+			h += hash<int>{}(structMember.getBitsLimit()) << 1;
+			//h += hash<string>{}(structMember.getName()) << 1;
+			DeepWalker::visit(structMember);
+			}, &structMember);
+	}
+	void visit(StructType& st) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is struct type" << endl;
+			h += hash<string>{}(typeid(st).name()) << 1;
+			h += hash<int>{}(st.getMemberCount()) << 1;
+			DeepWalker::visit(st);
+			}, &st);
+	}
+	void visit(EnumMemberDescriptor& emdt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is enum member descriptor" << endl;
+			h += hash<string>{}(typeid(emdt).name()) << 1;
+			h += hash<int>{}(emdt.getValue()) << 1;
+			DeepWalker::visit(emdt);
+			}, &emdt);
+	}
+	void visit(EnumType& et) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is enum type" << endl;
+			h += hash<string>{}(typeid(et).name()) << 1;
+			h += hash<int>{}(et.getMemberCount()) << 1;
+			DeepWalker::visit(et);
+			}, &et);
+	}
+	void visit(ParameterDescriptor& pd) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is parameter desctiptor" << endl;
+			h += hash<string>{}(typeid(pd).name()) << 1;
+			h += hash<int>{}(pd.getTransitKind()) << 1;
+			DeepWalker::visit(pd);
+			}, &pd);
+	}
+	void visit(SubroutineType& st) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is subr type" << endl;
+			h += hash<string>{}(typeid(st).name()) << 1;
+			h += hash<int>{}(st.getCallingKind()) << 1;
+			h += hash<int>{}(st.getParameterCount()) << 1;
+			DeepWalker::visit(st);
+			}, &st);
+	}
+	void visit(DeclaredType& dt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is decl type" << endl;
+			h += hash<string>{}(typeid(dt).name()) << 1;
+			DeepWalker::visit(dt);
+			}, &dt);
+	}
+	void visit(VectorType& vt) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is decl type" << endl;
+			h += hash<string>{}(typeid(vt).name()) << 1;
+			h += hash<int>{}(vt.getElementCount()) << 1;
+			DeepWalker::visit(vt);
+			}, &vt);
+	}
 
 	//Expressions
 	void visit(BasicLiteralExpression& ble) 
@@ -229,129 +328,105 @@ public:
 			DeepWalker::visit(sle);
 			}, &sle);
 	}
-	void visit(CompoundLiteralExpression&) {}
-	void visit(ReferenceExpression&) {}
-	void visit(SubroutineReferenceExpression&) {}
-	void visit(StructAccessExpression&) {}
-	void visit(EnumAccessExpression&) {}
-	void visit(TypeCastExpression&){}
-	void visit(BasicCallExpression&) {}
-	void visit(SubroutineCallExpression&) {}
-	void visit(EmptyExpression&) {}
+	void visit(CompoundLiteralExpression& cle) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is compound literal expression" << endl;
+			h += hash<int>{}(cle.getChildCount()) << 1;
+			DeepWalker::visit(cle);
+			}, &cle);
+	}
+	void visit(ReferenceExpression& re) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is ref expression" << endl;
+			h += hash<string>{}(typeid(re).name()) << 1;
+			h += hash<int>{}(re.getChildCount()) << 1;
+			DeepWalker::visit(re);
+			}, &re);
+	}
+	void visit(SubroutineReferenceExpression& sre) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is subr ref expression" << endl;
+			h += hash<string>{}(typeid(sre).name()) << 1;
+			h += hash<int>{}(sre.getChildCount()) << 1;
+			DeepWalker::visit(sre);
+			}, &sre);
+	}
+	void visit(StructAccessExpression& sae) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is struct access expression" << endl;
+			h += hash<string>{}(typeid(sae).name()) << 1;
+			h += hash<int>{}(sae.getChildCount()) << 1;
+			DeepWalker::visit(sae);
+			}, &sae);
+	}
+	void visit(EnumAccessExpression& eae) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is enum expression" << endl;
+			h += hash<string>{}(typeid(eae).name()) << 1;
+			h += hash<int>{}(eae.getChildCount()) << 1;
+			DeepWalker::visit(eae);
+			}, &eae);
+	}
+	void visit(TypeCastExpression& tce)
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is type cast expression" << endl;
+			h += hash<string>{}(typeid(tce).name()) << 1;
+			h += hash<int>{}(tce.getChildCount()) << 1;
+			DeepWalker::visit(tce);
+			}, &tce);
+	}
+	void visit(BasicCallExpression& bce) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is basic call expression" << endl;
+			h += hash<string>{}(typeid(bce).name()) << 1;
+			h += hash<int>{}(bce.getKind()) << 1;
+			h += hash<int>{}(bce.getChildCount()) << 1;
+			DeepWalker::visit(bce);
+			}, &bce);
+	}
+	void visit(SubroutineCallExpression& sce) 
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is sbur call expression" << endl;
+			h += hash<string>{}(typeid(sce).name()) << 1;
+			h += hash<int>{}(sce.getArgumentCount()) << 1;
+			DeepWalker::visit(sce);
+	}, &sce);
+	}
+	void visit(EmptyExpression& ee)
+	{
+		processNode([&]() {
+			cout << string(" ") << "It is empty expr" << endl;
+			DeepWalker::visit(ee);
+			}, &ee);
+	}
+
+	friend map<size_t, vector<HashDeepWalker::SubTreeInfo>> getBuckets(const HashDeepWalker& hdw)
+	{
+		map<size_t, vector<HashDeepWalker::SubTreeInfo>> buckets = map<size_t, vector<HashDeepWalker::SubTreeInfo>>();
+
+		for (int i = 0; i < hdw.nodes.size(); i++)
+		{
+			if (hdw.nodes[i].subTreeSize > MassThreshold)
+			{
+				if (buckets.find(hdw.nodes[i].hashCode) == buckets.end())
+				{
+					buckets[hdw.nodes[i].hashCode] = vector<HashDeepWalker::SubTreeInfo>();
+				}
+				buckets[hdw.nodes[i].hashCode].push_back(hdw.nodes[i]);
+			}
+		}
+
+		return buckets;
+	}
 };
-
-pair<size_t,size_t> hashSubTree(RepriseBase* node, int depth = 0)
-{
-	size_t h = 0;
-	size_t size = 1;
-
-	if (node->is_a<SubroutineDeclaration>())
-	{
-		auto decl = (SubroutineDeclaration*)(node);
-		cout << string(" ",depth) << "It is subroutinedecl" << endl;
-		auto &type = decl->getType();
-		//h += hash<string>{}(type.getReturnType()); implement hasher for TypeBase
-		h += hash<string>{}(decl->getName());
-		auto res = hashSubTree(&decl->getBodyBlock(),depth+1);
-		h += res.first << 1;
-		size += res.second;
-	}
-	if (node->is_a<BlockStatement>())
-	{
-		auto block = (BlockStatement*)(node);
-		cout << string(" ", depth) << "It is block" << endl;
-		for (int i = 0; i < block->getChildCount(); i++)
-		{
-			auto res = hashSubTree(&block->getChild(i), depth + 1);
-			h += res.first << 1;
-			size += res.second;
-		}
-	}
-	if (node->is_a<IfStatement>())
-	{
-		auto ifNode = (IfStatement*)node;
-		cout << string(" ", depth) << "It is if" << endl;
-		h += hash<string>{}("if_node");
-		for (int i = 0; i < ifNode->getChildCount(); i++)
-		{
-			auto res = hashSubTree(&ifNode->getChild(i), depth + 1);
-			h += res.first << 1;
-			size += res.second;
-		}
-	}
-	if (node->is_a<VariableDeclaration>())
-	{
-		auto var = (VariableDeclaration*)(node);
-		cout << string(" ", depth) << "It is var decl" << endl;
-		for (int i = 0; i < var->getChildCount(); i++)
-		{
-			hashSubTree(&var->getChild(i), depth + 1);
-		}
-	}
-	if (node->is_a<ExpressionStatement>())
-	{
-		auto exp = (ExpressionStatement*)(node);
-		cout << string(" ", depth) << "It is expression" << endl;
-		for (int i = 0; i < exp->getChildCount(); i++)
-		{
-			auto res = hashSubTree(&exp->getChild(i), depth + 1);
-			h += res.first << 1;
-			size += res.second;
-		}
-	}
-	if (node->is_a<ExpressionBase>())
-	{
-		auto exp = (ExpressionBase*)(node);
-		cout << string(" ", depth) << "It is expr base" << endl;
-		auto r = exp->is_a<ExpressionBase>();
-
-		if (node->is_a<BasicCallExpression>())
-		{
-			auto bce = (BasicCallExpression*)node;
-			cout << bce->getKind() << endl;
-			h += hash<int>{}(bce->getKind()) << 1;
-		}
-		if (node->is_a<BasicLiteralExpression>())
-		{
-			auto ble = (BasicLiteralExpression*)node;
-			cout << ble->getLiteralType() << endl;
-			h += hash<int>{}(ble->getLiteralType()) << 1;
-		}
-		if (node->is_a<StrictLiteralExpression>())
-		{
-			auto bse = (StrictLiteralExpression*)node;
-		}
-
-		for (int i = 0; i < exp->getChildCount(); i++)
-		{
-			hashSubTree(&exp->getChild(i), depth + 1);
-		}
-	}
-	if (node->is_a<PlainCaseLabel>())
-	{
-		cout << string(" ", depth) << "It is label" << endl;
-	}
-	if (node->is_a<GotoStatement>())
-	{
-		cout << string(" ", depth) << "It is go to" << endl;
-	}
-	if (node->is_a<ReturnStatement>())
-	{
-		cout << string(" ", depth) << "It is return" << endl;
-	}
-
-	//if (size > MassThreshold)
-	//{
-	//	if (buckets.find(h) == buckets.end())
-	//	{
-	//		buckets[h] = vector<HashDeepWalker::SubTreeInfo>();
-	//	}
-
-	//	buckets[h].push_back(HashDeepWalker::SubTreeInfo(node, h, size));
-	//}
-
-	return {h,size};
-}
 
 int compareTree(RepriseBase* t1, RepriseBase* t2)
 {
@@ -420,14 +495,12 @@ int compareTree(RepriseBase* t1, RepriseBase* t2)
 	return shared;
 }
 
-//bool isSimilar(SubTreeInfo& t1, SubTreeInfo& t2)
-//{
-//	int sharedNodes = compareTree(t1.node, t2.node);
-//	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1.subTreeSize - sharedNodes) + (t2.subTreeSize - sharedNodes));
-//	return similarity > SimilarityThreshold;
-//}
-
-map<size_t, vector<HashDeepWalker::SubTreeInfo>> buckets = map<size_t, vector<HashDeepWalker::SubTreeInfo>>();
+bool isSimilar(HashDeepWalker::SubTreeInfo& t1, HashDeepWalker::SubTreeInfo& t2)
+{
+	double sharedNodes = (double)compareTree(t1.node, t2.node);
+	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1.subTreeSize - sharedNodes) + (t2.subTreeSize - sharedNodes));
+	return similarity > SimilarityThreshold;
+}
 
 
 int main()
@@ -438,23 +511,24 @@ int main()
 
 	TranslationUnit& unit = frontend.getProgramUnit().getUnit(0);
 	HashDeepWalker hdw;
+	Service::DeepWalker dw;
 	hdw.visit(unit);
-	//hashSubTree(&(*unit.getGlobals().getFirstSubr()));
+	auto buckets = getBuckets(hdw);
 
-	//for (auto &bucket : buckets)
-	//{
-	//	for (int i = 0; i < bucket.second.size(); i++)
-	//	{
-	//		for (int j = i + 1; j < bucket.second.size(); j++)
-	//		{
-	//			if (isSimilar(bucket.second[i], bucket.second[j]))
-	//			{
-	//				cout << "Seems like clone found" << endl;
-	//				cout << bucket.first << endl;
-	//			}
-	//		}
-	//	}
-	//}
+	for (auto &bucket : buckets)
+	{
+		for (int i = 0; i < bucket.second.size(); i++)
+		{
+			for (int j = i + 1; j < bucket.second.size(); j++)
+			{
+				if (isSimilar(bucket.second[i], bucket.second[j]))
+				{
+					cout << "Seems like clone found" << endl;
+					cout << bucket.first << endl;
+				}
+			}
+		}
+	}
 
 	system("pause");
 	return 0;
