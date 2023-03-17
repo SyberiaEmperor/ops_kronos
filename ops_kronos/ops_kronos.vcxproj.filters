@@ -21,12 +21,18 @@
     <ClCompile Include="HashDeepWalker.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="SeqHashDeepWalker.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrontendHelper.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="HashDeepWalker.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="SeqHashDeepWalker.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

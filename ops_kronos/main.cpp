@@ -1,4 +1,4 @@
-#include"HashDeepWalker.h"
+#include"SeqHashDeepWalker.h"
 
 #include <iostream>
 #include <map>
@@ -48,14 +48,14 @@ bool isSimilar(HashDeepWalker::SubTreeInfo& t1, HashDeepWalker::SubTreeInfo& t2)
 int main()
 {
 	Frontend::Frontend frontend;
-	const OPS::Reprise::CompileResult& result = frontend.compileSingleFile("./tests/if_test.c");
+	const OPS::Reprise::CompileResult& result = frontend.compileSingleFile("./tests/if_test2.c");
 	if (result.errorCount() > 0) { std::cout << result.errorText(); std::cout.flush(); }
 
 	TranslationUnit& unit = frontend.getProgramUnit().getUnit(0);
-	HashDeepWalker hdw;
+	SeqHashDeepWalker shdw;
 	Service::DeepWalker dw;
-	hdw.visit(unit);
-	auto buckets = hdw.getBuckets(MassThreshold);
+	shdw.visit(unit);
+	auto buckets = shdw.getBuckets(MassThreshold);
 
 	for (auto &bucket : buckets)
 	{

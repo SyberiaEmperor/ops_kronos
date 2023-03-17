@@ -150,10 +150,12 @@
   <ItemGroup>
     <ClCompile Include="HashDeepWalker.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SeqHashDeepWalker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrontendHelper.h" />
     <ClInclude Include="HashDeepWalker.h" />
+    <ClInclude Include="SeqHashDeepWalker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

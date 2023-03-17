@@ -26,16 +26,18 @@ private:
 	size_t h = 0;
 	int size = 0;
 
+
+protected:
 	vector<SubTreeInfo> nodes;
 
 	template<class Func>
 	void processNode(Func f, RepriseBase* n)
 	{
-		size++;
 		size_t th = h;
 		h = 0;
 		f();
 		h = th;
+		size++;
 		nodes.push_back(SubTreeInfo(n, h, size));
 	}
 
@@ -88,4 +90,6 @@ public:
 	void visit(EmptyExpression&);
 
 	map<size_t, vector<HashDeepWalker::SubTreeInfo>> getBuckets(int MassThreshold);
+
+	int getSize() { return size; }
 };
