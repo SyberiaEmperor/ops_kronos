@@ -18,3 +18,22 @@ void SeqHashDeepWalker::visit(BlockStatement& bs)
 	sni.CalcHash();
 	seqNodes.push_back(sni);
 }
+
+map<size_t, vector<SeqHashDeepWalker::SeqNodeInfo>> SeqHashDeepWalker::getSeqBuckets(int MassThreshold)
+{
+	map<size_t, vector<SeqHashDeepWalker::SeqNodeInfo>> buckets = map<size_t, vector<SeqHashDeepWalker::SeqNodeInfo>>();
+
+	for (int i = 0; i<seqNodes.size(); i++)
+	{
+		if (seqNodes[i].statements.size() > MassThreshold)
+		{
+			if (buckets.find(seqNodes[i].hashCode) == buckets.end())
+			{
+				buckets[seqNodes[i].hashCode] = vector<SeqHashDeepWalker::SeqNodeInfo>();
+			}
+			buckets[seqNodes[i].hashCode].push_back(seqNodes[i]);
+		}
+	}
+
+	return buckets;
+}

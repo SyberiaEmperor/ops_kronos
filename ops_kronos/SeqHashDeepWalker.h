@@ -8,16 +8,23 @@ public:
 
 	struct SeqNodeInfo {
 		BlockStatement* bs;
-		size_t h;
+		size_t hashCode;
 		vector<HashDeepWalker::SubTreeInfo> statements;
 
-		SeqNodeInfo(BlockStatement* b) :bs(b), h(0),statements() {}
+		SeqNodeInfo(BlockStatement* b) :bs(b), hashCode(0),statements() {}
 		void CalcHash() {
-			h = 0;
+			hashCode = 0;
 			for (auto& st : statements)
 			{
-				h += st.hashCode;
+				hashCode += st.hashCode;
 			}
+		}
+		int CalcTotalSize() {
+			int size = 0;
+			for (auto& st : statements) {
+				size += st.subTreeSize;
+			}
+			return size + 1;
 		}
 	};
 
@@ -30,4 +37,6 @@ public:
 
 	using HashDeepWalker::visit;
 	void visit(BlockStatement&);
+
+	map<size_t, vector<SeqHashDeepWalker::SeqNodeInfo>> getSeqBuckets(int MassThreshold);
 };
