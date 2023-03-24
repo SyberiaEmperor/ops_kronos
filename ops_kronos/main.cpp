@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 
 using namespace std;
 using namespace OPS;
@@ -38,10 +39,35 @@ int basicTreeCompare(RepriseBase* t1, RepriseBase* t2)
 	return shared;
 }
 
-bool isSimilar(HashDeepWalker::SubTreeInfo& t1, HashDeepWalker::SubTreeInfo& t2)
+bool isSeqSimilar(shared_ptr < HashDeepWalker::SubTreeInfo> t1, shared_ptr < HashDeepWalker::SubTreeInfo> t2)
 {
-	double sharedNodes = (double)basicTreeCompare(t1.node, t2.node);
-	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1.subTreeSize - sharedNodes) + (t2.subTreeSize - sharedNodes));
+	double sharedNodes = 0;
+
+	for (int i = 0; i < t1->children.size(); i++)
+	{
+		for (int j = 0; j < t2->children.size(); j++)
+		{
+			if (t1->children[i]->hashCode == t2->children[j]->hashCode)
+			{
+				sharedNodes += basicTreeCompare(t1->children[i]->node, t2->children[j]->node);
+				break;
+			}
+
+		}
+	}
+
+	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1->children.size() - sharedNodes) + (t2->children.size() - sharedNodes));
+	return similarity > SimilarityThreshold;
+}
+
+bool isSimilar(shared_ptr <HashDeepWalker::SubTreeInfo> t1, shared_ptr <HashDeepWalker::SubTreeInfo> t2)
+{
+	if (t1->node->is_a<BlockStatement>() && t2->node->is_a<BlockStatement>())
+	{
+		return isSeqSimilar(t1, t2);
+	}
+	double sharedNodes = (double)basicTreeCompare(t1->node, t2->node);
+	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1->subTreeSize - sharedNodes) + (t2->subTreeSize - sharedNodes));
 	return similarity > SimilarityThreshold;
 }
 
@@ -66,47 +92,75 @@ bool isSimilar(HashDeepWalker::SubTreeInfo& t1, HashDeepWalker::SubTreeInfo& t2)
 //	return shared;
 //}
 
-bool isSeqSimilar(SeqHashDeepWalker::SeqNodeInfo& t1, SeqHashDeepWalker::SeqNodeInfo& t2)
-{
-	double sharedNodes = 0;
 
-	for (int i = 0; i < t1.statements.size(); i++)
-	{
-		for (int j = 0; j < t2.statements.size(); j++)
-		{
-			if (t1.statements[i].hashCode == t2.statements[j].hashCode)
-			{
-				sharedNodes += basicTreeCompare(t1.statements[i].node, t2.statements[j].node);
-				break;
-			}
-
-		}
-	}
-
-	double similarity = (2 * sharedNodes) / (2 * sharedNodes + (t1.statements.size() - sharedNodes) + (t2.statements.size() - sharedNodes));
-	return similarity > SimilarityThreshold;
-}
 
 struct Clone { // research best representation of clone class
-	vector<RepriseBase*> refs;
+	int size;
+	set<shared_ptr<HashDeepWalker::SubTreeInfo>> refs;
+	Clone() {}
+	Clone(int s) :size(s), refs() {}
 };
 
-void cloneGeneralizing(vector<Clone>& clones)
+map<size_t, Clone> clones = map<size_t, Clone>();
+
+void cloneGeneralizing()
 {
 	for (auto&clone : clones)
 	{
-		for (int i = 0; i < clone.refs.size(); i++)
+		for (auto& i : clone.second.refs)
 		{
-			for (int j = i; j < clone.refs.size(); j++)
+			for (auto& j : clone.second.refs)
 			{
-				auto parent1 = clone.refs[i]->getParent();
-				auto parent2 = clone.refs[j]->getParent();
-
-				//TODO
+				if (i != j)
+				{
+					if (i->parent && j->parent)
+					{
+						if (isSimilar(i->parent, j->parent))
+						{
+							if (clones.find(i->hashCode) == clones.end())
+							{
+								clones[i->hashCode] = Clone(i->subTreeSize);
+							}
+							clones[i->hashCode].refs.insert(i);
+							clones[i->hashCode].refs.insert(j);
+							clone.second.refs.erase(i);
+							clone.second.refs.erase(j);
+						}
+					}
+				}
 			}
 		}
 	}
 }
+
+void deepTraverse(shared_ptr < HashDeepWalker::SubTreeInfo> n)
+{
+	if (clones.find(n->hashCode) != clones.end())
+	{
+		clones[n->hashCode].refs.erase(n);
+		if (clones[n->hashCode].refs.size() == 1)
+			clones[n->hashCode].refs.clear();
+	}
+}
+
+void eraseSubClones(shared_ptr < HashDeepWalker::SubTreeInfo> root)
+{
+	for (int i = 0; i < root->children.size(); i++)
+		deepTraverse(root->children[i]);
+}
+
+void addClonePair(shared_ptr < HashDeepWalker::SubTreeInfo> s1, shared_ptr < HashDeepWalker::SubTreeInfo> s2)
+{
+	if (clones.find(s1->hashCode) == clones.end())
+	{
+		clones[s1->hashCode] = Clone(s1->subTreeSize);
+	}
+	eraseSubClones(s1);
+	eraseSubClones(s2);
+	clones[s1->hashCode].refs.insert(s1);
+	clones[s1->hashCode].refs.insert(s2);
+}
+
 
 int main()
 {
@@ -119,7 +173,6 @@ int main()
 	Service::DeepWalker dw;
 	shdw.visit(unit);
 	auto buckets = shdw.getBuckets(MassThreshold);
-	auto seqBuckets = shdw.getSeqBuckets(MassSeqThreshold);
 
 	for (auto &bucket : buckets)
 	{
@@ -130,22 +183,7 @@ int main()
 				if (isSimilar(bucket.second[i], bucket.second[j]))
 				{
 					cout << "Seems like clone found" << endl;
-					cout << bucket.first << endl;
-				}
-			}
-		}
-	}
-
-	for (auto& bucket : seqBuckets)
-	{
-		for (int i = 0; i < bucket.second.size(); i++)
-		{
-			for (int j = i + 1; j < bucket.second.size(); j++)
-			{
-				if (isSeqSimilar(bucket.second[i], bucket.second[j]))
-				{
-					cout << "Seems like seq clone found" << endl;
-					cout << bucket.first << endl;
+					addClonePair(bucket.second[i], bucket.second[j]);
 				}
 			}
 		}

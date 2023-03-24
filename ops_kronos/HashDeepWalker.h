@@ -6,6 +6,7 @@
 #include <Reprise/Service/DeepWalker.h>
 
 #include<iostream>
+#include<memory>
 
 using namespace std;
 using namespace OPS;
@@ -16,29 +17,50 @@ class HashDeepWalker : public Service::DeepWalker
 public:
 	struct SubTreeInfo {
 		RepriseBase* node;
-		size_t hashCode;
-		size_t subTreeSize;
-
-		SubTreeInfo(RepriseBase* n, int h, int s) : node(n), hashCode(h), subTreeSize(s) {}
+		size_t hashCode = 0;
+		size_t subTreeSize=0;
+		shared_ptr<SubTreeInfo> parent;
+		vector<shared_ptr<SubTreeInfo>> children;
+		SubTreeInfo(RepriseBase* n):node(n) {}
+		SubTreeInfo(RepriseBase* n, int h, int s) : node(n), hashCode(h), subTreeSize(s),children() {}
 	};
 
-private:
+protected:
 	size_t h = 0;
 	int size = 0;
 
+	shared_ptr<SubTreeInfo> currentNode;
 
-protected:
-	vector<SubTreeInfo> nodes;
+	vector< shared_ptr<SubTreeInfo>> nodes;
 
 	template<class Func>
 	void processNode(Func f, RepriseBase* n)
 	{
 		size_t th = h;
 		h = 0;
+
+		shared_ptr <SubTreeInfo> tp = currentNode;
+		shared_ptr <SubTreeInfo> sti = make_shared<SubTreeInfo>(n);
+		currentNode = sti;
+
 		f();
-		h = th;
+
+
+		sti->hashCode = h;
+		sti->subTreeSize = size;
+
+		nodes.push_back(sti);
+
+		if (tp != nullptr)
+		{
+			tp->children.push_back(sti);
+		}
+
 		size++;
-		nodes.push_back(SubTreeInfo(n, h, size));
+		size_t h2 = h << 1;
+		h = th + h2;
+		sti->parent = tp;
+		currentNode = tp;
 	}
 
 public:
@@ -89,7 +111,7 @@ public:
 	void visit(SubroutineCallExpression&);
 	void visit(EmptyExpression&);
 
-	map<size_t, vector<HashDeepWalker::SubTreeInfo>> getBuckets(int MassThreshold);
+	map<size_t, vector<shared_ptr<HashDeepWalker::SubTreeInfo>>> getBuckets(int MassThreshold);
 
 	int getSize() { return size; }
 };

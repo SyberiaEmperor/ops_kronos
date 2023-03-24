@@ -362,19 +362,19 @@ void HashDeepWalker::visit(EmptyExpression& ee)
 		}, &ee);
 }
 
-map<size_t, vector<HashDeepWalker::SubTreeInfo>> HashDeepWalker::getBuckets(int MassThreshold)
+map<size_t, vector<shared_ptr<HashDeepWalker::SubTreeInfo>>> HashDeepWalker::getBuckets(int MassThreshold)
 {
-	map<size_t, vector<HashDeepWalker::SubTreeInfo>> buckets = map<size_t, vector<HashDeepWalker::SubTreeInfo>>();
+	map<size_t, vector<shared_ptr<HashDeepWalker::SubTreeInfo>>> buckets = map<size_t, vector<shared_ptr<HashDeepWalker::SubTreeInfo>>>();
 
 	for (int i = 0; i < nodes.size(); i++)
 	{
-		if (nodes[i].subTreeSize > MassThreshold)
+		if (nodes[i]->subTreeSize > MassThreshold)
 		{
-			if (buckets.find(nodes[i].hashCode) == buckets.end())
+			if (buckets.find(nodes[i]->hashCode) == buckets.end())
 			{
-				buckets[nodes[i].hashCode] = vector<HashDeepWalker::SubTreeInfo>();
+				buckets[nodes[i]->hashCode] = vector< shared_ptr<HashDeepWalker::SubTreeInfo>>();
 			}
-			buckets[nodes[i].hashCode].push_back(nodes[i]);
+			buckets[nodes[i]->hashCode].push_back(nodes[i]);
 		}
 	}
 
